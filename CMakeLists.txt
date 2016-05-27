@@ -1,7 +1,7 @@
 # Created by the script cgal_create_CMakeLists
 # This is the CMake script for compiling a set of CGAL applications.
 
-project( linux_opengl_3_3_test )
+project( water_test )
 
 
 cmake_minimum_required(VERSION 2.8.11)
