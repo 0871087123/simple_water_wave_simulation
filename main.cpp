@@ -175,9 +175,9 @@ int main(int argc, const char * argv[]) {
         //ÊÓ½Ç¿í£¨½Ç¶È£©       ¿í¸ß±È    ½üÇÐÃæ  Ô¶ÇÐÃæ
         glm::mat4 proj = glm::perspective(glm::radians(60.0f), (float)w / h, 0.3f, 500.0f);
         //ÑÛ¾¦Î»ÖÃ      ¿´µÄµãµÄÎ»ÖÃ       Í·¶¥µÄÏòÁ¿
-        glm::mat4 camera = glm::lookAt(glm::vec3(0, -2, 2), glm::vec3(0, 0, 0), glm::vec3(0, 1, 1));
+        glm::mat4 camera = glm::lookAt(glm::vec3(0, -1.6, 3), glm::vec3(0, 0, 0), glm::vec3(0, 1, 1));
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::scale(model, glm::vec3(0.02));
+        model = glm::scale(model, glm::vec3(0.05));
         glm::mat4 pvm = proj * camera ;
         glm::mat4 unpv = glm::inverse(proj * camera);
         glUniformMatrix4fv(glGetUniformLocation(program, "pvm"), 1, GL_FALSE, glm::value_ptr(pvm));
