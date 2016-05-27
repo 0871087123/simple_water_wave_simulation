@@ -11,42 +11,26 @@
 
 using namespace std;
 
-const char* v_shader =
-"#version 400\n"
-"in vec3 vp;\n"
-"uniform mat4 p;\n"
-"uniform mat4 v;\n"
-"uniform mat4 m;\n"
-"out vec3 vp_color;\n"
-"void main() {\n"
-"   gl_Position = p * v * m * vec4(vp, 1.0);\n"
-"   vp_color = vp;\n"
-"}\n";
-
-const char* f_shader =
-"#version 400\n"
-"out vec4 frag_color;\n"
-"in vec3 vp_color;\n"
-"void main() {\n"
-"   frag_color = vec4(vp_color, 0.5);\n"
-"}\n";
-
-GLfloat points[] = {
-    0.0f, 0.5f, 0.0f, //0
-    
-    -0.5f, -0.5f, -0.5f,  //1
-    0.5f, -0.5f, -0.5f,  //2
-    0.5f, -0.5f,  0.5f,  //3
-    -0.5f, -0.5f,  0.5f,  //4
+GLfloat points[][3] = {
+    -1.0f, -1.0f, 0.0f, //0
+    1.0f, 1.0f, 0.0f,  //2
+    1.0f, -1.0f, 0.0f,  //1
+    -1.0f, -1.0f,  0.0f,  //3
+    1.0f, 1.0f,  0.0f,  //4
+    -1.0f, 1.0f,  0.0f,  //5
 };
 
-GLushort indexs[] = {
-    0, 1, 2, //ÕýÃæ
-    0, 2, 3, //ÓÒ±ß
-    0, 3, 4, //±³Ãæ
-    0, 4, 1, //×ó±ß
-    1, 4, 3, 1, 3, 2 //ÏÂÃæ
-};
+typedef struct tag_point {
+    GLfloat x;
+    GLfloat y;
+    GLfloat z;
+} m_point;
+
+typedef struct tag_squre {
+    m_point pts[6];
+} m_squre;
+
+const int cnt_squre = 18;
 
 GLuint vbo = 0;
 GLuint vao = 0;
@@ -61,6 +45,23 @@ int main(int argc, const char * argv[]) {
     int w = 1024;
     int h = 768;
     
+    char * vert_sl = "/Volumes/RamDisk/water_test/vert.glsl";
+    char * frag_sl = "/Volumes/RamDisk/water_test/frag.glsl";
+    
+#define MAX_FILE_SIZE 10000
+    char * filedata = new char[MAX_FILE_SIZE];
+    bzero(filedata, MAX_FILE_SIZE);
+    ifstream vsl = ifstream(vert_sl);
+    vsl.read(filedata, MAX_FILE_SIZE);
+    string vert(filedata);
+    bzero(filedata, MAX_FILE_SIZE);
+    ifstream fsl = ifstream(frag_sl);
+    fsl.read(filedata, MAX_FILE_SIZE);
+    string frag(filedata);
+
+    const char* v_shader = vert.c_str();
+    const char* f_shader = frag.c_str();
+
     if (!glfwInit()) {
         cout << "error to init glfw" << endl;
     }
@@ -134,16 +135,25 @@ int main(int argc, const char * argv[]) {
     glLinkProgram(program);
     
     // set data
+    m_squre * squrs = (m_squre *)malloc(sizeof(m_squre) * 100 * 100);
+    for (int i = -49; i < 50; i++) {
+        for (int j = -49; j < 50; j++) {
+            for (int z = 0; z < 6; z++) {
+                squrs[(i + 49) * 100 + j + 49].pts[z].x += points[z][0] + i;
+                squrs[(i + 49) * 100 + j + 49].pts[z].y += points[z][1] + j;
+            }
+        }
+    }
     
     //set vbo
-//    glGenBuffers(1, &vbo);
-//    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-//    glBufferData(GL_ARRAY_BUFFER, (sizeof(GLfloat) * pts_size), pts_data, GL_STATIC_DRAW);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, (100 * 100 * sizeof(m_squre)), squrs, GL_STATIC_DRAW);
     
     //set ibo
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexs), indexs, GL_STATIC_DRAW);
+//    glGenBuffers(1, &ibo);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexs), indexs, GL_STATIC_DRAW);
     
     //use vbo
     glGenVertexArrays(1, &vao);
@@ -154,6 +164,7 @@ int main(int argc, const char * argv[]) {
     
     GLfloat angle = 0.0f;
     
+    float timein = glfwGetTime();
     while (!glfwWindowShouldClose(win)) {
         angle += 0.05f;
         
@@ -164,17 +175,21 @@ int main(int argc, const char * argv[]) {
         //ÊÓ½Ç¿í£¨½Ç¶È£©       ¿í¸ß±È    ½üÇÐÃæ  Ô¶ÇÐÃæ
         glm::mat4 proj = glm::perspective(glm::radians(60.0f), (float)w / h, 0.3f, 500.0f);
         //ÑÛ¾¦Î»ÖÃ      ¿´µÄµãµÄÎ»ÖÃ       Í·¶¥µÄÏòÁ¿
-        glm::mat4 camera = glm::lookAt(glm::vec3(0, 0, 3), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-        glUniformMatrix4fv(glGetUniformLocation(program, "p"), 1, GL_FALSE, glm::value_ptr(proj));
-        glUniformMatrix4fv(glGetUniformLocation(program, "v"), 1, GL_FALSE, glm::value_ptr(camera));
-        glUniformMatrix4fv(glGetUniformLocation(program, "m"), 1, GL_FALSE, glm::value_ptr(glm::rotate(glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f))));
+        glm::mat4 camera = glm::lookAt(glm::vec3(0, -2, 2), glm::vec3(0, 0, 0), glm::vec3(0, 1, 1));
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::scale(model, glm::vec3(0.02));
+        glm::mat4 pvm = proj * camera ;
+        glm::mat4 unpv = glm::inverse(proj * camera);
+        glUniformMatrix4fv(glGetUniformLocation(program, "pvm"), 1, GL_FALSE, glm::value_ptr(pvm));
+        glUniformMatrix4fv(glGetUniformLocation(program, "m"), 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(glGetUniformLocation(program, "unpv"), 1, GL_FALSE, glm::value_ptr(unpv));
+        glUniform1f(glGetUniformLocation(program, "timein"), glfwGetTime() - timein);
         
         glUseProgram(program);
         glBindVertexArray(vao);
         
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-        glDrawArrays(GL_TRIANGLES, 0, 0);
-        //		glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_SHORT, nullptr);
+        glDrawArrays(GL_TRIANGLES, 0, 6 * 100 * 100);
         glfwPollEvents();
         glfwSwapBuffers(win);
     }
